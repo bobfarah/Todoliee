@@ -9,7 +9,7 @@
 import UIKit
 
 class TodolieeVC: UITableViewController {
-    let itemArray = ["Find Milk","Buy Egoo","Destroy Demognon"]
+    var itemArray = ["Find Milk","Buy Egoo","Destroy Demognon"]
     override func viewDidLoad() {
         super.viewDidLoad()
     }
@@ -32,7 +32,22 @@ class TodolieeVC: UITableViewController {
         }
         tableView.deselectRow(at: indexPath, animated: true)
     }
-    
+//    MARK - Add new item
+    @IBAction func addBtnPressed(_ sender: UIBarButtonItem) {
+        var textField = UITextField()
+        let alert = UIAlertController(title: "Add new Todolee item", message: "", preferredStyle: .alert)
+        let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
+            //            what will happen when the user click on the add item buttn
+            self.itemArray.append(textField.text!)
+            self.tableView.reloadData()
+        }
+        alert.addTextField { (alertTextField) in
+            alertTextField.placeholder = "Create new item"
+            textField = alertTextField
+        }
+        alert.addAction(action)
+        present(alert, animated: true, completion: nil)
+    }
     
     
 }
