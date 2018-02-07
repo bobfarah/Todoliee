@@ -10,8 +10,12 @@ import UIKit
 
 class TodolieeVC: UITableViewController {
     var itemArray = ["Find Milk","Buy Egoo","Destroy Demognon"]
+    let defaults = UserDefaults.standard
     override func viewDidLoad() {
         super.viewDidLoad()
+        if let items = defaults.array(forKey: "TodoListArray") as? [String] {
+            itemArray = items
+        }
     }
     //MARK - TableView Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -40,6 +44,7 @@ class TodolieeVC: UITableViewController {
             //            what will happen when the user click on the add item buttn
             self.itemArray.append(textField.text!)
             self.tableView.reloadData()
+            self.defaults.set(self.itemArray, forKey: "TodoListArray")
         }
         alert.addTextField { (alertTextField) in
             alertTextField.placeholder = "Create new item"
