@@ -7,17 +7,21 @@
 //
 
 import UIKit
-
+import CoreData
 class TodolieeVC: UITableViewController {
     
     var itemArray = [Item]()
-    
-     let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
-    
+    var selectedCategory: Category?{
+        didSet{
+            loadItems()
+
+        }
+    }
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     override func viewDidLoad() {
         super.viewDidLoad()
- 
-        loadItems()
+        
+        
     }
     //MARK - TableView Datasource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -27,31 +31,35 @@ class TodolieeVC: UITableViewController {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
         cell.textLabel?.text = itemArray[indexPath.row].title
-       
+        
         let item = itemArray[indexPath.row]
         
         cell.accessoryType = item.done ? .checkmark : .none
-      
+        
         return cell
     }
     //MARK - TableView Delegate Method
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-
+        
         itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         saveItem()
-
+        
         tableView.deselectRow(at: indexPath, animated: true)
     }
-//    MARK - Add new item
+    //    MARK - Add new item
     @IBAction func addBtnPressed(_ sender: UIBarButtonItem) {
         var textField = UITextField()
         let alert = UIAlertController(title: "Add new Todolee item", message: "", preferredStyle: .alert)
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             //            what will happen when the user click on the add item buttn
-            let newItem = Item()
+            
+            
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
+            newItem.done = false
+            newItem.parentCategory = self.selectedCategory
             self.itemArray.append(newItem)
-          self.saveItem()
+            self.saveItem()
         }
         alert.addTextField { (alertTextField) in
             alertTextField.placeholder = "Create new item"
@@ -62,26 +70,58 @@ class TodolieeVC: UITableViewController {
     }
     
     func saveItem(){
-        let encoder = PropertyListEncoder()
         do{
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+            
+            try  context.save()
         }
         catch{
-            print("error in encoding \(error)")
+            print("error saving message \(error)")
         }
         self.tableView.reloadData()
-
+        
     }
-    func loadItems() {
-      
-        if let data = try? Data(contentsOf: dataFilePath!){
-        let decoder = PropertyListDecoder()
+    
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate,additionalPredicate])
+        }else{
+            request.predicate = categoryPredicate
+        }
+     
         do{
-            itemArray = try decoder.decode([Item].self, from: data)
+            itemArray = try context.fetch(request)
         }catch{
-            print("eror in decoding \(error)")
+            print("error in fetching \(error)")
+        }
+        tableView.reloadData()
+    }
+    
+}
+//    MARK - Seaarch Bar Extension
+
+extension TodolieeVC: UISearchBarDelegate{
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request: NSFetchRequest<Item> = Item.fetchRequest()
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        request.predicate = predicate
+
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        loadItems(with: request, predicate: predicate)
+        
+    }
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        
+        if searchBar.text?.count == 0 {
+            
+            loadItems()
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+        }else{
+            searchBarSearchButtonClicked(searchBar)
         }
     }
-}
+    
 }
