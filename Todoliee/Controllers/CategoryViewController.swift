@@ -8,24 +8,28 @@
 
 import UIKit
 import RealmSwift
-class CategoryViewController: UITableViewController {
+import ChameleonFramework
+class CategoryViewController: SwipeTableViewController {
     
     let realm = try! Realm()
     var categories: Results<Category>?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        tableView.separatorStyle = .none
         loadCategories()
     }
     //    MARK: - TableView DataSource Methods
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return categories?.count ?? 1
     }
+
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Category created yet!"
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        cell.textLabel?.text = categories?[indexPath.row].name ?? "No Category created yet!"  
+        cell.backgroundColor = UIColor(hexString: categories?[indexPath.row].color ?? "1D9BF6")
+       
         return cell
     }
     
@@ -47,7 +51,8 @@ class CategoryViewController: UITableViewController {
             
             let newCategory = Category()
             newCategory.name = textField.text!
-            
+            newCategory.color = UIColor.randomFlat.hexValue()
+
 
             self.save(category: newCategory)
         }
@@ -72,9 +77,22 @@ class CategoryViewController: UITableViewController {
         }
         
     }
-    
+    //MARK: - Delet from Swipe
+    override func updateModel(at indexPath: IndexPath){
+        if let categoryToBeDeleted = self.categories?[indexPath.row]{
+            do{
+                try self.realm.write {
+                    self.realm.delete(categoryToBeDeleted)
+                }
+            }catch{
+                print("deleting error \(error)")
+            }
+            
+        }
+    }
     //    MARK: - Data Manuplation Methods
     func save(category: Category){
+        
         do{
             
             try realm.write {
@@ -95,3 +113,9 @@ class CategoryViewController: UITableViewController {
         tableView.reloadData()
     }
 }
+
+
+
+
+
+
